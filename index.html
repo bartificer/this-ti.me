@@ -53,31 +53,44 @@
 				<div class="card-header h3">
 					Share a Time
 				</div>
-				<form action="javascript:void(0);" class="card-body form" novalidate>
+				<form action="javascript:void(0);" class="card-body form" id="share-fm" novalidate>
 					<div class="form-group">
 						<label for="share-date">Date</label>
-						<div class="input-group date" id="share-date" data-target-input="nearest">
-							<input type="text" class="form-control datetimepicker-input" data-target="#share-date">
-							<div class="input-group-append" data-target="#share-date" data-toggle="datetimepicker">
+						<div class="input-group date" id="share-date-dp" data-target-input="nearest">
+							<input type="text" class="form-control datetimepicker-input" data-target="#share-date-dp" id="share-date-tb" required>
+							<div class="input-group-append" data-target="#share-date-dp" data-toggle="datetimepicker">
 								<div class="input-group-text"><i class="far fa-calendar-alt"></i></div>
 							</div>
 						</div>
-						<small class="form-text text-muted">Enter a date in your local format, or click the calendar icon to bring up a date picker.</small>
+						<small class="form-text text-muted">Enter a date in your local format, e.g. <code id="share-date-example"></code>, or click the calendar icon to bring up a date picker.</small>
 					</div>
 					<div class="form-group">
 						<label for="share-Time">Time</label>
-						<div class="input-group date" id="share-time" data-target-input="nearest">
-							<input type="text" class="form-control datetimepicker-input" data-target="#share-time">
-							<div class="input-group-append" data-target="#share-time" data-toggle="datetimepicker">
+						<div class="input-group date" id="share-time-dp" data-target-input="nearest">
+							<input type="text" class="form-control datetimepicker-input" data-target="#share-time-dp"  id="share-time-tb" required>
+							<div class="input-group-append" data-target="#share-time-dp" data-toggle="datetimepicker">
 								<div class="input-group-text"><i class="far fa-clock"></i></div>
 							</div>
 						</div>
-						<small class="form-text text-muted">Enter a time in 24 hour format, e.g. <code>04:15</code> or <code>14:00</code>, or click the clock icon to bring up a time picker.</small>
+						<small class="form-text text-muted">Enter a time in 24 hour format, e.g. <code>02:15</code> or <code>14:15</code>, or click the clock icon to bring up a time picker.</small>
 					</div>
 					<div class="form-group">
 						<label for="share-timezone">Time Zone</label>
-						<input type="text" id="share-timezone" class="form-control" autocomplete="off">
+						<input type="text" id="share-timezone-tb" class="form-control" autocomplete="off" required>
 						<small class="form-text text-muted">Enter an <a href="https://en.wikipedia.org/wiki/Tz_database" target="_blank" rel="noopener">IANA timezone string</a>, or just start typing a city name for auto-complete suggestions.</small>
+					</div>
+					<div class="form-group">
+						<label for="share-tb">Share Link</label>
+						<div class="input-group">
+							<div class="input-group-prepend">
+								<div class="input-group-text"><i class="fas fa-link"></i></div>
+							</div>
+							<input type="text" class="form-control" id="share-tb">
+							<div class="input-group-append">
+								<button class="btn btn-success" type="button" id="share-btn">Generate</button>
+							</div>
+						</div>
+						<small class="form-text text-muted">Enter a date in your local format, e.g. <code id="share-date-example"></code>, or click the calendar icon to bring up a date picker.</small>
 					</div>
 				</form>
 			</div>
@@ -101,12 +114,46 @@
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.0.1/js/tempusdominus-bootstrap-4.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.0.1/css/tempusdominus-bootstrap-4.min.css" />
 
+<!-- Include URI.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/URI.js/1.19.2/URI.min.js" integrity="sha512-YQAqeLT4VuAZV80lmk6OE3XtmMW3eDxUtNf2V2w16eypX21CDtelaVsFD1QLUBCQuJEenK3jPqYPmpNUasdktA==" crossorigin="anonymous"></script>
+
 <!-- This Page's Local JavaScript Code -->
 <script type="text/javascript">
 	//
-	// === The Document Ready Handler
+	// === Global Variables ===
+	//
+	
+	// the date & time formats
+	var DATE_FORMAT = 'L';
+	var TIME_FORMAT = 'HH:mm';
+	var COMBINED_FORMAT = `${DATE_FORMAT} ${TIME_FORMAT}`;
+	
+	// jQuery objects representing important UI elements
+	var $SHARE_FM = null; // the share form
+	var $SHARE_DATE_DP = null; // the date picker for the sharing date
+	var $SHARE_DATE_TB = null; // the text box for the sharing date
+	var $SHARE_TIME_DP = null; // the time picker for the sharing date
+	var $SHARE_TIME_TB = null; // the text box for the sharing time
+	var $SHARE_TIMEZONE_TB = null; // the text box for the sharing timezone
+	var $SHARE_BTN = null; // the button for generating teh share link
+	var $SHARE_TB = null; // the text box for holding the share link
+	
+	//
+	// === The Document Ready Handler ===
 	//
 	$(function(){
+		//
+		// -- init the global jQuery variables
+		//
+		$SHARE_FM = $('#share-fm');
+		$SHARE_DATE_DP = $('#share-date-dp');
+		$SHARE_DATE_TB = $('#share-date-tb');
+		$SHARE_TIME_DP = $('#share-time-dp');
+		$SHARE_TIME_TB = $('#share-time-tb');
+		$SHARE_TIMEZONE_TB = $('#share-timezone-tb');
+		$SHARE_BTN = $('#share-btn');
+		$SHARE_TB = $('#share-tb');
+		
 		// build the set of timezones for use in the timezone dropdowns
 		const tzAutoCompeleSource = {};
 		let tzAutoCompleteCounter = 1;
@@ -125,22 +172,101 @@
 			tzAutoCompleteCounter++;
 		}
 		
-		// init the date & time pickers
-		$('#share-date').datetimepicker({
-			format: 'L',
-			minDate: moment().startOf('day'),
+		// a local function for validating the entire share form
+		const validateShareForm = function(){
+			// get a list of all invalid inputs
+			const $invalid = $('.is-invalid', $SHARE_FM);
+			
+			if($invalid.length === 0){
+				// no invalid fields
+				$SHARE_BTN.prop('disabled', false);
+			}else{
+				// at least one invalid field
+				$SHARE_BTN.prop('disabled', true);
+			}
+		};
+		
+		// init the date picker
+		const startOfDay = moment().startOf('day');
+		$('#share-date-example').text(startOfDay.format(DATE_FORMAT));
+		$SHARE_DATE_DP.datetimepicker({
+			format: DATE_FORMAT,
+			minDate: startOfDay,
 			defaultDate: moment()
         });
-		$('#share-time').datetimepicker({
-			format: 'HH:mm',
-			defaultDate: moment().startOf('hour').add(1, 'hour')
+		$SHARE_DATE_TB.on('input', function(){
+			// validate the date
+			const dObj = moment($SHARE_DATE_TB.val(), DATE_FORMAT, true);
+			if(dObj && dObj.isValid()){
+				// the date is valid, so mark it as such
+				$SHARE_DATE_TB.removeClass('is-invalid').addClass('is-valid');
+			}else{
+				// the date is invalid
+				$SHARE_DATE_TB.removeClass('is-valid').addClass('is-invalid');
+			}
+			
+			// re-validate the entire form
+			validateShareForm();
+		});
+		
+		// init the time picker
+		$SHARE_TIME_DP.datetimepicker({
+			format: TIME_FORMAT,
+			defaultDate: moment().startOf('hour').add(1, 'hour'),
+			stepping: 15
         });
+		$SHARE_TIME_TB.on('input', function(){
+			// validate the time
+			const tObj = moment($SHARE_TIME_TB.val(), TIME_FORMAT, true);
+			if(tObj && tObj.isValid()){
+				// the time is valid, so mark it as such
+				$SHARE_TIME_TB.removeClass('is-invalid').addClass('is-valid');
+			}else{
+				// the date is invalid
+				$SHARE_TIME_TB.removeClass('is-valid').addClass('is-invalid');
+			}
+			
+			// re-validate the entire form
+			validateShareForm();
+		});
 		
 		// init the timezone dropdown
-		$('#share-timezone').val(Intl.DateTimeFormat().resolvedOptions().timeZone).autocomplete({
+		$SHARE_TIMEZONE_TB.val(Intl.DateTimeFormat().resolvedOptions().timeZone).autocomplete({
 			source: tzAutoCompeleSource, // the autocompelte values
 			maximumItems: 10, // the maximum autocomplete suggestions
 			treshold: 1, // the minimum number of characters to search
+			onSelectItem: function(){ // event handler for selection of autocomplete suggestion
+				$SHARE_TIMEZONE_TB.trigger('input');
+			}
+		}).on('input', function(){
+			// validate the timezone
+			const tzObj = moment.tz.zone($SHARE_TIMEZONE_TB.val());
+			if(tzObj){
+				// not null, so time zone is valid
+				$SHARE_TIMEZONE_TB.removeClass('is-invalid').addClass('is-valid');
+			}else{
+				// timezone is invalid
+				$SHARE_TIMEZONE_TB.removeClass('is-valid').addClass('is-invalid');
+			}
+			
+			// re-validate the entire form
+			validateShareForm();
+		});
+		
+		// add a click handler to the generate button
+		$SHARE_BTN.click(function(){
+			// build objects representing the timezone and date time
+			const shareTimezone = moment.tz.zone($SHARE_TIMEZONE_TB.val());
+			const shareDate = moment.tz(`${$SHARE_DATE_TB.val()} ${$SHARE_TIME_TB.val()}`, COMBINED_FORMAT, shareTimezone.name);
+			
+			// build the URL
+			const shareURL = URI().query({
+				uts: shareDate.unix(),
+				tz: shareTimezone.name
+			});
+			
+			// write the URL to the textbox and select it
+			$SHARE_TB.val(shareURL.toString()).select();
 		});
     });
 </script>
