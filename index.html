@@ -29,7 +29,7 @@
 <header class="container my-3">
 	<div class="row">
 		<div class="col">
-			<h1>This-Ti.me</h1>
+			<h1 class="display-1">This-Ti.me</h1>
 		</div>
 	</div>
 </header>
@@ -41,10 +41,29 @@
 		<div class="col">
 			 <div class="card">
 				<div class="card-header h3">
+					You
+				</div>
+				<form action="javascript:void(0);" class="card-body form" id="you-fm" novalidate>
+					<div class="form-group">
+						<label for="you-timezone-tb">Your Time Zone</label>
+						<div class="input-group">
+							<input type="text" id="you-timezone-tb" class="form-control" autocomplete="off" required>
+							<div class="input-group-append">
+								<div class="input-group-text"><i class="fas fa-globe"></i></div>
+							</div>
+						</div>
+						<small class="form-text text-muted">Enter an <a href="https://en.wikipedia.org/wiki/Tz_database" target="_blank" rel="noopener">IANA timezone string</a>, or just start typing a city name for auto-complete suggestions.</small>
+					</div>
+				</form>
+			 </div>
+		</div>
+		<div class="col">
+			 <div class="card">
+				<div class="card-header h3">
 					Shared Time
 				</div>
 				<div class="card-body">
-					<p class="card-text" id="placeholder-time"></p>
+					<p class="card-text" id="shared-time"><span class="small font-italic">No shared time</span></p>
 				</div>
 			 </div>
 		</div>
@@ -73,11 +92,6 @@
 							</div>
 						</div>
 						<small class="form-text text-muted">Enter a time in 24 hour format, e.g. <code>02:15</code> or <code>14:15</code>, or click the clock icon to bring up a time picker.</small>
-					</div>
-					<div class="form-group">
-						<label for="share-timezone">Time Zone</label>
-						<input type="text" id="share-timezone-tb" class="form-control" autocomplete="off" required>
-						<small class="form-text text-muted">Enter an <a href="https://en.wikipedia.org/wiki/Tz_database" target="_blank" rel="noopener">IANA timezone string</a>, or just start typing a city name for auto-complete suggestions.</small>
 					</div>
 					<div class="form-group">
 						<label for="share-tb">Share Link</label>
@@ -129,30 +143,56 @@
 	var COMBINED_FORMAT = `${DATE_FORMAT} ${TIME_FORMAT}`;
 	
 	// jQuery objects representing important UI elements
+	var $YOU_FM = null; // the 'you' form
+	var $YOU_TIMEZONE_TB = null; // the text box for your timezone
 	var $SHARE_FM = null; // the share form
 	var $SHARE_DATE_DP = null; // the date picker for the sharing date
 	var $SHARE_DATE_TB = null; // the text box for the sharing date
 	var $SHARE_TIME_DP = null; // the time picker for the sharing date
 	var $SHARE_TIME_TB = null; // the text box for the sharing time
-	var $SHARE_TIMEZONE_TB = null; // the text box for the sharing timezone
 	var $SHARE_BTN = null; // the button for generating teh share link
 	var $SHARE_TB = null; // the text box for holding the share link
+	var $ALL_FM = null; // the 'you' and share forms
+	
+	// the infomration shared in the URL (if any)
+	var SHARED_INFO = null;
+	
+	//
+	// === UI Functions ===
+	//
+	
+	/**
+	 * Render the shared time.
+	 */
+	function renderSharedTime(){
+		// build a moment object representing the shared time
+		const sharedTime = moment.tz(SHARED_INFO.uts, 'X', $YOU_TIMEZONE_TB.val());
+		
+		// render the time
+		$('#shared-time').text(sharedTime.format('L HH:mm'));
+	}
 	
 	//
 	// === The Document Ready Handler ===
 	//
 	$(function(){
 		//
-		// -- init the global jQuery variables
+		// -- init the global jQuery variables --
 		//
+		$YOU_FM = $('#you-fm');
+		$YOU_TIMEZONE_TB = $('#you-timezone-tb');
 		$SHARE_FM = $('#share-fm');
 		$SHARE_DATE_DP = $('#share-date-dp');
 		$SHARE_DATE_TB = $('#share-date-tb');
 		$SHARE_TIME_DP = $('#share-time-dp');
 		$SHARE_TIME_TB = $('#share-time-tb');
-		$SHARE_TIMEZONE_TB = $('#share-timezone-tb');
 		$SHARE_BTN = $('#share-btn');
 		$SHARE_TB = $('#share-tb');
+		$ALL_FM = $().add($YOU_FM).add($SHARE_FM);
+		
+		//
+		// -- Init the UI --
+		//
 		
 		// build the set of timezones for use in the timezone dropdowns
 		const tzAutoCompeleSource = {};
@@ -172,10 +212,10 @@
 			tzAutoCompleteCounter++;
 		}
 		
-		// a local function for validating the entire share form
-		const validateShareForm = function(){
+		// a local function for validating the pre-requisutes for sharing
+		const validateSharing = function(){
 			// get a list of all invalid inputs
-			const $invalid = $('.is-invalid', $SHARE_FM);
+			const $invalid = $('.is-invalid', $ALL_FM);
 			
 			if($invalid.length === 0){
 				// no invalid fields
@@ -185,6 +225,29 @@
 				$SHARE_BTN.prop('disabled', true);
 			}
 		};
+		
+		// init the timezone input
+		$YOU_TIMEZONE_TB.val(Intl.DateTimeFormat().resolvedOptions().timeZone).autocomplete({
+			source: tzAutoCompeleSource, // the autocompelte values
+			maximumItems: 10, // the maximum autocomplete suggestions
+			treshold: 1, // the minimum number of characters to search
+			onSelectItem: function(){ // event handler for selection of autocomplete suggestion
+				$YOU_TIMEZONE_TB.trigger('input');
+			}
+		}).on('input', function(){
+			// validate the timezone
+			const tzObj = moment.tz.zone($YOU_TIMEZONE_TB.val());
+			if(tzObj){
+				// not null, so time zone is valid
+				$YOU_TIMEZONE_TB.removeClass('is-invalid').addClass('is-valid');
+			}else{
+				// timezone is invalid
+				$YOU_TIMEZONE_TB.removeClass('is-valid').addClass('is-invalid');
+			}
+			
+			// re-validate sharing
+			validateSharing();
+		});
 		
 		// init the date picker
 		const startOfDay = moment().startOf('day');
@@ -205,8 +268,8 @@
 				$SHARE_DATE_TB.removeClass('is-valid').addClass('is-invalid');
 			}
 			
-			// re-validate the entire form
-			validateShareForm();
+			// re-validate sharing
+			validateSharing();
 		});
 		
 		// init the time picker
@@ -226,31 +289,8 @@
 				$SHARE_TIME_TB.removeClass('is-valid').addClass('is-invalid');
 			}
 			
-			// re-validate the entire form
-			validateShareForm();
-		});
-		
-		// init the timezone dropdown
-		$SHARE_TIMEZONE_TB.val(Intl.DateTimeFormat().resolvedOptions().timeZone).autocomplete({
-			source: tzAutoCompeleSource, // the autocompelte values
-			maximumItems: 10, // the maximum autocomplete suggestions
-			treshold: 1, // the minimum number of characters to search
-			onSelectItem: function(){ // event handler for selection of autocomplete suggestion
-				$SHARE_TIMEZONE_TB.trigger('input');
-			}
-		}).on('input', function(){
-			// validate the timezone
-			const tzObj = moment.tz.zone($SHARE_TIMEZONE_TB.val());
-			if(tzObj){
-				// not null, so time zone is valid
-				$SHARE_TIMEZONE_TB.removeClass('is-invalid').addClass('is-valid');
-			}else{
-				// timezone is invalid
-				$SHARE_TIMEZONE_TB.removeClass('is-valid').addClass('is-invalid');
-			}
-			
-			// re-validate the entire form
-			validateShareForm();
+			// re-validate sharing
+			validateSharing();
 		});
 		
 		// add a click handler to the generate button
@@ -268,6 +308,17 @@
 			// write the URL to the textbox and select it
 			$SHARE_TB.val(shareURL.toString()).select();
 		});
+		
+		//
+		// -- Load The Shared Time (if any) --
+		//
+		
+		const sharedInfo = (new URI()).query(true);
+		if(sharedInfo.uts){
+			SHARED_INFO = sharedInfo;
+		}
+		
+		renderSharedTime();
     });
 </script>
 
