@@ -12,11 +12,11 @@
 	
 	<!-- Add local styles -->
 	<style>
-		/* Load the web font for the clock */
+		/* Load the web font for the clocks */
 		@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 		
 		/* Apply the web font to the clock */
-		#wc_clock{
+		.clock{
 			font-family: 'Share Tech Mono', monospace;
 		}
 	</style>
@@ -63,7 +63,12 @@
 					Shared Time
 				</div>
 				<div class="card-body">
-					<p class="card-text" id="shared-time"><span class="small font-italic">No shared time</span></p>
+					<h1 class="h4 card-title">Your Time</h1>
+					<h2 class="h5 card-subtitle text-muted" id="shared-yourTime-timezone"><em>Your Timezone</em></h6>
+					<p class="card-text" id="shared-yourTime-time"></p>
+					<h1 class="h4 card-title mt-3">Their Time</h1>
+					<h2 class="h5 card-subtitle text-muted" id="shared-theirTime-timezone"><em>Their Timezone</em></h6>
+					<p class="card-text" id="shared-theirTime-time"></p>
 				</div>
 			 </div>
 		</div>
@@ -112,6 +117,23 @@
 	</div>
 </main>
 
+<!--
+== Define Mustache Templates ==
+-->
+
+<script type="text/html" id="clock-tpl">
+	<div class="clock display-1 text-center">
+		<div class="badge badge-{{{bootstrapColor}}}">
+			{{time}}<br>
+			<small>{{date}}</small>
+		</div>
+	</div>
+</script>
+
+<!--
+== Import JavaScript ==
+-->
+
 <!-- Include Bootstrap JavaScript from CDNs -->
 <script src="https://code.jquery.com/jquery-3.4.0.min.js" integrity="sha256-BJeo0qm959uMBGb65z40ejJYGSgR7REI4+CW1fNKwOg=" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous"></script>
@@ -124,18 +146,26 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.25.3/moment-with-locales.min.js" integrity="sha256-8d6kI5cQEwofkZmaPTRbKgyD70GN5mDpTYNP9YWhTlI=" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.28/moment-timezone-with-data.min.js" integrity="sha256-IWYg4uIC8/erItNXYvLtyYHioRi2zT1TFva8qaAU/ww=" crossorigin="anonymous"></script>
 
-<!-- Include Tempus Dominus -->
+<!-- Include Tempus Dominus from CDN -->
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.0.1/js/tempusdominus-bootstrap-4.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.0.1/css/tempusdominus-bootstrap-4.min.css" />
 
-<!-- Include URI.js -->
+<!-- Include URI.js from CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/URI.js/1.19.2/URI.min.js" integrity="sha512-YQAqeLT4VuAZV80lmk6OE3XtmMW3eDxUtNf2V2w16eypX21CDtelaVsFD1QLUBCQuJEenK3jPqYPmpNUasdktA==" crossorigin="anonymous"></script>
+
+<!-- Include Mustache.js from CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/4.0.1/mustache.min.js" integrity="sha512-6AXIWogbKpsHvoZJrJtHpIYES4wP8czSj0zk7ZfwOYS8GWYFNSykwdfapt7yQc4ikZytemBu+QyVObzBHJMwYg==" crossorigin="anonymous"></script>
 
 <!-- This Page's Local JavaScript Code -->
 <script type="text/javascript">
 	//
 	// === Global Variables ===
 	//
+	
+	// template strings
+	var TEMPLATES = {
+		clock: '' // the template for rendering a clock
+	};
 	
 	// the date & time formats
 	var DATE_FORMAT = 'L';
@@ -145,6 +175,10 @@
 	// jQuery objects representing important UI elements
 	var $YOU_FM = null; // the 'you' form
 	var $YOU_TIMEZONE_TB = null; // the text box for your timezone
+	var $SHARED_YOURTIME_TIME = null; // the placeholder for the shared time in the recipient's timezone
+	var $SHARED_YOURTIME_TIMEZONE = null; // the placeholder for the recipient's timezone
+	var $SHARED_THEIRTIME_TIME = null; // the placeholder for the shared time in the sender's timezone
+	var $SHARED_THEIRTIME_TIMEZONE = null; // the placeholder for the sender's timezone
 	var $SHARE_FM = null; // the share form
 	var $SHARE_DATE_DP = null; // the date picker for the sharing date
 	var $SHARE_DATE_TB = null; // the text box for the sharing date
@@ -190,23 +224,56 @@
 	//
 	
 	/**
+	 * Read my timezone in human-friendly form.
+	 *
+	 * @return {string} Ahuman-friendly timezone name, e.g. `'America/Los Angeles'`.
+	 */
+	function myTimezone(){
+		return $YOU_TIMEZONE_TB.val();
+	}
+	
+	/**
 	 * Read my timezone as an IANA timezone name.
 	 *
 	 * @return {string} An IANA timezone name, e.g. `'America/Los_Angeles'`.
 	 */
-	function myIANATimeZone(){
-		return humanTZToIANA($YOU_TIMEZONE_TB.val());
+	function myIANATimezone(){
+		return humanTZToIANA(myTimezone());
 	}
 	
 	/**
-	 * Render the shared time.
+	 * Render a clock given a time as a moment object.
+	 *
+	 * @param {moment} time
+	 * @param {boolean} [primarClock=false]
+	 * @return {jQuery}
 	 */
-	function renderSharedTime(){
+	function renderClock(time, primaryClock){
+		return $(Mustache.render(
+			TEMPLATES.clock,
+			{
+				time: time.format(TIME_FORMAT),
+				date: time.format(DATE_FORMAT),
+				bootstrapColor: primaryClock ? 'primary' : 'secondary'
+			}
+		));
+	}
+	
+	/**
+	 * Update the display of the shared time.
+	 */
+	function updateSharedTime(){
 		// build a moment object representing the shared time
 		const sharedTime = moment.tz(SHARED_INFO.uts, 'X', $YOU_TIMEZONE_TB.val());
 		
-		// render the time
-		$('#shared-time').text(sharedTime.format('L HH:mm'));
+		// render the time in your timezone
+		$SHARED_YOURTIME_TIME.empty().append(renderClock(sharedTime, true));
+		$SHARED_YOURTIME_TIMEZONE.empty().append(myTimezone());
+		
+		// render the time in the sender's timezone
+		const theirTime = moment(sharedTime).tz(SHARED_INFO.tz);
+		$SHARED_THEIRTIME_TIME.empty().append(renderClock(theirTime));
+		$SHARED_THEIRTIME_TIMEZONE.empty().append(ianaTZToHuman(SHARED_INFO.tz));
 	}
 	
 	//
@@ -218,6 +285,10 @@
 		//
 		$YOU_FM = $('#you-fm');
 		$YOU_TIMEZONE_TB = $('#you-timezone-tb');
+		$SHARED_YOURTIME_TIME = $('#shared-yourTime-time');
+		$SHARED_YOURTIME_TIMEZONE = $('#shared-yourTime-timezone');
+		$SHARED_THEIRTIME_TIME = $('#shared-theirTime-time');
+		$SHARED_THEIRTIME_TIMEZONE = $('#shared-theirTime-timezone');
 		$SHARE_FM = $('#share-fm');
 		$SHARE_DATE_DP = $('#share-date-dp');
 		$SHARE_DATE_TB = $('#share-date-tb');
@@ -226,6 +297,11 @@
 		$SHARE_BTN = $('#share-btn');
 		$SHARE_TB = $('#share-tb');
 		$ALL_FM = $().add($YOU_FM).add($SHARE_FM);
+		
+		//
+		// -- load templates --
+		//
+		TEMPLATES.clock = $('#clock-tpl').html();
 		
 		//
 		// -- Init the UI --
@@ -273,7 +349,7 @@
 			}
 		}).on('input', function(){
 			// validate the timezone
-			const tzObj = moment.tz.zone(myIANATimeZone());
+			const tzObj = moment.tz.zone(myIANATimezone());
 			if(tzObj){
 				// not null, so time zone is valid
 				$YOU_TIMEZONE_TB.removeClass('is-invalid').addClass('is-valid');
@@ -333,7 +409,7 @@
 		// add a click handler to the generate button
 		$SHARE_BTN.click(function(){
 			// build objects representing the timezone and date time
-			const shareTZ = myIANATimeZone();
+			const shareTZ = myIANATimezone();
 			const shareDate = moment.tz(`${$SHARE_DATE_TB.val()} ${$SHARE_TIME_TB.val()}`, COMBINED_FORMAT, shareTZ);
 			
 			// build the URL
@@ -355,7 +431,7 @@
 			SHARED_INFO = sharedInfo;
 		}
 		
-		renderSharedTime();
+		updateSharedTime();
     });
 </script>
 
