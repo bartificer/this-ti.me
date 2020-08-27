@@ -158,8 +158,45 @@
 	var SHARED_INFO = null;
 	
 	//
+	// === Utility Functions ===
+	//
+	
+	/**
+	 * Convert an IANA timezone name to a human-friendly timezone name.
+	 *
+	 * This function simply replaces underscores with spaces.
+	 *
+	 * @param {string} ianaTZName
+	 * @return {string}
+	 */
+	function ianaTZToHuman(ianaTZName){
+		return String(ianaTZName).replaceAll('_', ' ');
+	}
+	
+	/**
+	 * Convert a human-friendly timezon name to an IANA timezone name.
+	 *
+	 * This function simply replaces spaces with underscores.
+	 *
+	 * @param {string} humanTZName
+	 * @return {string}
+	 */
+	function humanTZToIANA(humanTZName){
+		return String(humanTZName).replaceAll(' ', '_');
+	}
+	
+	//
 	// === UI Functions ===
 	//
+	
+	/**
+	 * Read my timezone as an IANA timezone name.
+	 *
+	 * @return {string} An IANA timezone name, e.g. `'America/Los_Angeles'`.
+	 */
+	function myIANATimeZone(){
+		return humanTZToIANA($YOU_TIMEZONE_TB.val());
+	}
 	
 	/**
 	 * Render the shared time.
@@ -208,7 +245,7 @@
 			if(tzParts[0] === 'Etc') continue;
 			
 			// if we got here, add the timezone as an option
-			tzAutoCompeleSource[tzName] = tzAutoCompleteCounter;
+			tzAutoCompeleSource[ianaTZToHuman(tzName)] = tzAutoCompleteCounter;
 			tzAutoCompleteCounter++;
 		}
 		
@@ -236,7 +273,7 @@
 			}
 		}).on('input', function(){
 			// validate the timezone
-			const tzObj = moment.tz.zone($YOU_TIMEZONE_TB.val());
+			const tzObj = moment.tz.zone(myIANATimeZone());
 			if(tzObj){
 				// not null, so time zone is valid
 				$YOU_TIMEZONE_TB.removeClass('is-invalid').addClass('is-valid');
@@ -296,13 +333,13 @@
 		// add a click handler to the generate button
 		$SHARE_BTN.click(function(){
 			// build objects representing the timezone and date time
-			const shareTimezone = moment.tz.zone($SHARE_TIMEZONE_TB.val());
-			const shareDate = moment.tz(`${$SHARE_DATE_TB.val()} ${$SHARE_TIME_TB.val()}`, COMBINED_FORMAT, shareTimezone.name);
+			const shareTZ = myIANATimeZone();
+			const shareDate = moment.tz(`${$SHARE_DATE_TB.val()} ${$SHARE_TIME_TB.val()}`, COMBINED_FORMAT, shareTZ);
 			
 			// build the URL
 			const shareURL = URI().query({
 				uts: shareDate.unix(),
-				tz: shareTimezone.name
+				tz: shareTZ
 			});
 			
 			// write the URL to the textbox and select it
