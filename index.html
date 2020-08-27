@@ -54,6 +54,16 @@
 						</div>
 						<small class="form-text text-muted">Enter an <a href="https://en.wikipedia.org/wiki/Tz_database" target="_blank" rel="noopener">IANA timezone string</a>, or just start typing a city name for auto-complete suggestions.</small>
 					</div>
+					<div class="form-group">
+						<label for="you-timezone-tb">Your Name <small class="text-muted">(Optional)</small></label>
+						<div class="input-group">
+							<input type="text" id="you-name-tb" class="form-control">
+							<div class="input-group-append">
+								<div class="input-group-text"><i class="far fa-user"></i></div>
+							</div>
+						</div>
+						<small class="form-text text-muted">Recipients see the shared time in their timezone and yours. If you enter a name, your time will be labeled with your name.</small>
+					</div>
 				</form>
 			 </div>
 		</div>
@@ -66,7 +76,7 @@
 					<h1 class="h4 card-title">Your Time</h1>
 					<h2 class="h5 card-subtitle text-muted" id="shared-yourTime-timezone"><em>Your Timezone</em></h6>
 					<p class="card-text" id="shared-yourTime-time"></p>
-					<h1 class="h4 card-title mt-3">Their Time</h1>
+					<h1 class="h4 card-title mt-3"><span id="shared-theirTime-name">Their</span> Time</h1>
 					<h2 class="h5 card-subtitle text-muted" id="shared-theirTime-timezone"><em>Their Timezone</em></h6>
 					<p class="card-text" id="shared-theirTime-time"></p>
 				</div>
@@ -109,7 +119,7 @@
 								<button class="btn btn-success" type="button" id="share-btn">Generate</button>
 							</div>
 						</div>
-						<small class="form-text text-muted">Enter a date in your local format, e.g. <code id="share-date-example"></code>, or click the calendar icon to bring up a date picker.</small>
+						<small class="form-text text-muted">Share this link how ever you like. Recipients will see your shared time in their timezone and yours.</small>
 					</div>
 				</form>
 			</div>
@@ -175,8 +185,10 @@
 	// jQuery objects representing important UI elements
 	var $YOU_FM = null; // the 'you' form
 	var $YOU_TIMEZONE_TB = null; // the text box for your timezone
+	var $YOU_NAME_TB = null; // the text box for your name
 	var $SHARED_YOURTIME_TIME = null; // the placeholder for the shared time in the recipient's timezone
 	var $SHARED_YOURTIME_TIMEZONE = null; // the placeholder for the recipient's timezone
+	var $SHARED_THEIRTIME_NAME = null; // the placeholder for the label for the sender's time
 	var $SHARED_THEIRTIME_TIME = null; // the placeholder for the shared time in the sender's timezone
 	var $SHARED_THEIRTIME_TIMEZONE = null; // the placeholder for the sender's timezone
 	var $SHARE_FM = null; // the share form
@@ -268,12 +280,17 @@
 		
 		// render the time in your timezone
 		$SHARED_YOURTIME_TIME.empty().append(renderClock(sharedTime, true));
-		$SHARED_YOURTIME_TIMEZONE.empty().append(myTimezone());
+		$SHARED_YOURTIME_TIMEZONE.text(myTimezone());
 		
 		// render the time in the sender's timezone
 		const theirTime = moment(sharedTime).tz(SHARED_INFO.tz);
+		let theirName = 'Their';
+		if(SHARED_INFO.name){
+			theirName = `${SHARED_INFO.name}'${ SHARED_INFO.name.match(/s$/i) ? '' : 's' }`;
+		}
+		$SHARED_THEIRTIME_NAME.text(theirName);
 		$SHARED_THEIRTIME_TIME.empty().append(renderClock(theirTime));
-		$SHARED_THEIRTIME_TIMEZONE.empty().append(ianaTZToHuman(SHARED_INFO.tz));
+		$SHARED_THEIRTIME_TIMEZONE.text(ianaTZToHuman(SHARED_INFO.tz));
 	}
 	
 	//
@@ -285,8 +302,10 @@
 		//
 		$YOU_FM = $('#you-fm');
 		$YOU_TIMEZONE_TB = $('#you-timezone-tb');
+		$YOU_NAME_TB = $('#you-name-tb');
 		$SHARED_YOURTIME_TIME = $('#shared-yourTime-time');
 		$SHARED_YOURTIME_TIMEZONE = $('#shared-yourTime-timezone');
+		$SHARED_THEIRTIME_NAME = $('#shared-theirTime-name');
 		$SHARED_THEIRTIME_TIME = $('#shared-theirTime-time');
 		$SHARED_THEIRTIME_TIMEZONE = $('#shared-theirTime-timezone');
 		$SHARE_FM = $('#share-fm');
@@ -413,10 +432,15 @@
 			const shareDate = moment.tz(`${$SHARE_DATE_TB.val()} ${$SHARE_TIME_TB.val()}`, COMBINED_FORMAT, shareTZ);
 			
 			// build the URL
-			const shareURL = URI().query({
+			const shareInfo = {
 				uts: shareDate.unix(),
 				tz: shareTZ
-			});
+			};
+			if($YOU_NAME_TB.val()){
+				shareInfo.name = $YOU_NAME_TB.val();
+			}
+			const shareURL = URI().query(shareInfo);
+			
 			
 			// write the URL to the textbox and select it
 			$SHARE_TB.val(shareURL.toString()).select();
