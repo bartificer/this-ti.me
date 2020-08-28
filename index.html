@@ -64,6 +64,19 @@
 						</div>
 						<small class="form-text text-muted">Recipients see the shared time in their timezone and yours. If you enter a name, your time will be labeled with your name.</small>
 					</div>
+					<div class="form-group">
+						<label for="you-link-tb">Personal Link</label>
+						<div class="input-group">
+							<div class="input-group-prepend">
+								<div class="input-group-text"><i class="fas fa-link"></i></div>
+							</div>
+							<input type="text" class="form-control" id="you-link-tb">
+							<div class="input-group-append">
+								<button class="btn btn-secondary" type="button" id="you-link-btn">Generate</button>
+							</div>
+						</div>
+						<small class="form-text text-muted">This link encodes your chosen timezone and name, bookmark or save it to save yourself a little time and effort.</small>
+					</div>
 				</form>
 			 </div>
 		</div>
@@ -186,6 +199,8 @@
 	var $YOU_FM = null; // the 'you' form
 	var $YOU_TIMEZONE_TB = null; // the text box for your timezone
 	var $YOU_NAME_TB = null; // the text box for your name
+	var $YOU_LINK_TB = null; // the text box for your personal link
+	var $YOU_LINK_BTN = null; // the button for generating your personal link
 	var $SHARED_YOURTIME_TIME = null; // the placeholder for the shared time in the recipient's timezone
 	var $SHARED_YOURTIME_TIMEZONE = null; // the placeholder for the recipient's timezone
 	var $SHARED_THEIRTIME_NAME = null; // the placeholder for the label for the sender's time
@@ -196,7 +211,7 @@
 	var $SHARE_DATE_TB = null; // the text box for the sharing date
 	var $SHARE_TIME_DP = null; // the time picker for the sharing date
 	var $SHARE_TIME_TB = null; // the text box for the sharing time
-	var $SHARE_BTN = null; // the button for generating teh share link
+	var $SHARE_BTN = null; // the button for generating the share link
 	var $SHARE_TB = null; // the text box for holding the share link
 	var $ALL_FM = null; // the 'you' and share forms
 	
@@ -345,6 +360,8 @@
 		$YOU_FM = $('#you-fm');
 		$YOU_TIMEZONE_TB = $('#you-timezone-tb');
 		$YOU_NAME_TB = $('#you-name-tb');
+		$YOU_LINK_TB = $('#you-link-tb');
+		$YOU_LINK_BTN = $('#you-link-btn');
 		$SHARED_YOURTIME_TIME = $('#shared-yourTime-time');
 		$SHARED_YOURTIME_TIMEZONE = $('#shared-yourTime-timezone');
 		$SHARED_THEIRTIME_NAME = $('#shared-theirTime-name');
@@ -386,6 +403,20 @@
 			tzAutoCompleteCounter++;
 		}
 		
+		// a local function for validating the pre-requisutes for saving a personal URL
+		const validateSaving = function(){
+			// get a list of all invalid inputs
+			const $invalid = $('.is-invalid', $YOU_FM);
+			
+			if($invalid.length === 0){
+				// no invalid fields
+				$YOU_LINK_BTN.prop('disabled', false);
+			}else{
+				// at least one invalid field
+				$YOU_LINK_BTN.prop('disabled', true);
+			}
+		};
+		
 		// a local function for validating the pre-requisutes for sharing
 		const validateSharing = function(){
 			// get a list of all invalid inputs
@@ -423,14 +454,37 @@
 				$YOU_TIMEZONE_TB.removeClass('is-valid').addClass('is-invalid');
 			}
 			
-			// re-validate sharing
+			// re-validate sharing & saving
 			validateSharing();
+			validateSaving();
 		});
 		
 		// init the name input
 		if(URL_DATA.myname){
 			$YOU_NAME_TB.val(URL_DATA.myname);
 		}
+		
+		// add an event handler to blank the personal link when any of the personal data changes
+		$('input', $YOU_FM).on('input', function(){
+			$YOU_LINK_TB.val('');
+		});
+		
+		// init the personal link button
+		$YOU_LINK_BTN.click(function(){
+			// build the URL
+			const saveInfo = {
+				mytz: myIANATimezone()
+			};
+			const name = myName();
+			if(name){
+				saveInfo.myname = name;
+			}
+			const saveURL = URI().query(saveInfo);
+			
+			
+			// write the URL to the textbox and select it
+			$YOU_LINK_TB.val(saveURL.toString()).select();
+		});
 		
 		// init the date picker
 		const startOfDay = moment().startOf('day');
@@ -476,6 +530,11 @@
 			validateSharing();
 		});
 		
+		// add an event handler to blank the share link when any of the relevant data changes
+		$('input', $ALL_FM).on('input', function(){
+			$SHARE_TB.val('');
+		});
+		
 		// add a click handler to the generate button
 		$SHARE_BTN.click(function(){
 			// build objects representing the timezone and date time
@@ -502,7 +561,9 @@
 		// -- Load The Shared Time (if any) --
 		//
 		
-		updateSharedTime();
+		if(URL_DATA.timeShared){
+			updateSharedTime();
+		}
     });
 </script>
 
