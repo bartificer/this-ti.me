@@ -36,15 +36,84 @@
 
 
 <!-- The main page body -->
-<main class="container my-3" style="min-width: 690px;">
+<main class="container my-3">
 	<div class="row">
-		<div class="col" id="problem-alerts"></div>
+		<div class="col-12" id="problem-alerts"></div>
 	</div>
 	<div class="row">
 		<div class="col">
-			 <div class="card">
-				<div class="card-header h3">
-					You
+			<ul class="nav nav-tabs" id="mainNav" role="tablist">
+				<li class="nav-item h4 d-none" id="shared-tab-li" role="presentation">
+					<a class="nav-link" id="shared-tab" data-toggle="tab" href="#shared" role="tab" aria-controls="shared" aria-selected="false">Shared Time</a>
+				</li>
+				<li class="nav-item h4" role="presentation">
+					<a class="nav-link active" id="shared-tab" data-toggle="tab" href="#share" role="tab" aria-controls="share" aria-selected="true">Share a Time</a>
+				</li>
+				<li class="nav-item h4" role="presentation">
+					<a class="nav-link" id="profile-tab" data-toggle="tab" href="#about" role="tab" aria-controls="about" aria-selected="false">About</a>
+				</li>
+			</ul>
+			<div class="tab-content  mb-3" id="mainContent">
+				<div class="tab-pane fade border border-top-0 rounded-bottom p-3" id="shared" role="tabpanel" aria-labelledby="home-tab">
+					<div id="shared-intro-div"></div>
+					
+					<h1 class="h5">Your Time <small class="text-muted" id="shared-yourTime-timezone"><em>Your Timezone</em></small></h1>
+					<p id="shared-yourTime-time"></p>
+					<h1 class="h5 mt-3"><span id="shared-theirTime-name">Their</span> Time <small class="text-muted" id="shared-theirTime-timezone"><em>Their Timezone</em></small></h1>
+					<p id="shared-theirTime-time"></p>
+				</div>
+				<div class="tab-pane fade show active border border-top-0 rounded-bottom p-3" id="share" role="tabpanel" aria-labelledby="share-tab">
+					<p class="lead">Avoid timezone confusing by sharing a time with friends and colleagues around the world.</p>
+					
+					<p>Enter the date and time in your timezone, click the button to generate the link, then share it how ever you like.</p>
+					
+					<p>When your friends or colleagues open the link they'll see the time you shared in their own timezone as well as yours.</p>
+					
+					<form action="javascript:void(0);" class="form" id="share-fm" novalidate>
+						<div class="form-group">
+							<label for="share-date">Date</label>
+							<div class="input-group date" id="share-date-dp" data-target-input="nearest">
+								<input type="text" class="form-control datetimepicker-input" data-target="#share-date-dp" id="share-date-tb" required>
+								<div class="input-group-append" data-target="#share-date-dp" data-toggle="datetimepicker">
+									<div class="input-group-text"><i class="far fa-calendar-alt"></i></div>
+								</div>
+							</div>
+							<small class="form-text text-muted">Enter a date in your local format, e.g. <code id="share-date-example"></code>, or click the calendar icon to bring up a date picker.</small>
+						</div>
+						<div class="form-group">
+							<label for="share-Time">Time</label>
+							<div class="input-group date" id="share-time-dp" data-target-input="nearest">
+								<input type="text" class="form-control datetimepicker-input" data-target="#share-time-dp"  id="share-time-tb" required>
+								<div class="input-group-append" data-target="#share-time-dp" data-toggle="datetimepicker">
+									<div class="input-group-text"><i class="far fa-clock"></i></div>
+								</div>
+							</div>
+							<small class="form-text text-muted">Enter a time in 24 hour format, e.g. <code>02:15</code> or <code>14:15</code>, or click the clock icon to bring up a time picker.</small>
+						</div>
+						<div class="form-group">
+							<label for="share-tb">Share Link</label>
+							<div class="input-group">
+								<div class="input-group-prepend">
+									<div class="input-group-text"><i class="fas fa-link"></i></div>
+								</div>
+								<input type="text" class="form-control" id="share-tb">
+								<div class="input-group-append">
+									<button class="btn btn-success" type="button" id="share-btn">Generate</button>
+								</div>
+							</div>
+							<small class="form-text text-muted">Share this link how ever you like. Recipients will see your shared time in their timezone and yours.</small>
+						</div>
+					</form>	
+				</div>
+				<div class="tab-pane fade border border-top-0 rounded-bottom p-3" id="about" role="tabpanel" aria-labelledby="about-tab">
+					<p>A free and open source tool for sharing times with people across different timezones.</p>
+				</div>
+			</div>
+		</div>
+		<div class="col-12 col-md-4 order-md-first">
+			 <div class="card bg-light">
+				<div class="card-header h4">
+					About You
 				</div>
 				<form action="javascript:void(0);" class="card-body form" id="you-fm" novalidate>
 					<div class="form-group">
@@ -92,79 +161,12 @@
 				</form>
 			 </div>
 		</div>
-		<div class="col">
-			 <div class="card">
-				<div class="card-header h3">
-					Shared Time
-				</div>
-				<div class="card-body">
-					<h1 class="h4 card-title">Your Time</h1>
-					<h2 class="h5 card-subtitle text-muted" id="shared-yourTime-timezone"><em>Your Timezone</em></h6>
-					<p class="card-text" id="shared-yourTime-time"></p>
-					<h1 class="h4 card-title mt-3"><span id="shared-theirTime-name">Their</span> Time</h1>
-					<h2 class="h5 card-subtitle text-muted" id="shared-theirTime-timezone"><em>Their Timezone</em></h6>
-					<p class="card-text" id="shared-theirTime-time"></p>
-				</div>
-			 </div>
-		</div>
-		<div class="col">
-			<div class="card">
-				<div class="card-header h3">
-					Share a Time
-				</div>
-				<form action="javascript:void(0);" class="card-body form" id="share-fm" novalidate>
-					<div class="form-group">
-						<label for="share-date">Date</label>
-						<div class="input-group date" id="share-date-dp" data-target-input="nearest">
-							<input type="text" class="form-control datetimepicker-input" data-target="#share-date-dp" id="share-date-tb" required>
-							<div class="input-group-append" data-target="#share-date-dp" data-toggle="datetimepicker">
-								<div class="input-group-text"><i class="far fa-calendar-alt"></i></div>
-							</div>
-						</div>
-						<small class="form-text text-muted">Enter a date in your local format, e.g. <code id="share-date-example"></code>, or click the calendar icon to bring up a date picker.</small>
-					</div>
-					<div class="form-group">
-						<label for="share-Time">Time</label>
-						<div class="input-group date" id="share-time-dp" data-target-input="nearest">
-							<input type="text" class="form-control datetimepicker-input" data-target="#share-time-dp"  id="share-time-tb" required>
-							<div class="input-group-append" data-target="#share-time-dp" data-toggle="datetimepicker">
-								<div class="input-group-text"><i class="far fa-clock"></i></div>
-							</div>
-						</div>
-						<small class="form-text text-muted">Enter a time in 24 hour format, e.g. <code>02:15</code> or <code>14:15</code>, or click the clock icon to bring up a time picker.</small>
-					</div>
-					<div class="form-group">
-						<label for="share-tb">Share Link</label>
-						<div class="input-group">
-							<div class="input-group-prepend">
-								<div class="input-group-text"><i class="fas fa-link"></i></div>
-							</div>
-							<input type="text" class="form-control" id="share-tb">
-							<div class="input-group-append">
-								<button class="btn btn-success" type="button" id="share-btn">Generate</button>
-							</div>
-						</div>
-						<small class="form-text text-muted">Share this link how ever you like. Recipients will see your shared time in their timezone and yours.</small>
-					</div>
-				</form>
-			</div>
-		</div>
 	</div>
 </main>
 
 <!--
 == Define Mustache Templates ==
 -->
-
-<!-- A Clock -->
-<script type="text/html" id="clock-tpl">
-	<div class="clock display-1 text-center">
-		<div class="badge badge-{{{bootstrapColor}}}">
-			{{time}}<br>
-			<small>{{date}}</small>
-		</div>
-	</div>
-</script>
 
 <!-- An error message -->
 <script type="text/html" id="problem-alert-tpl">
@@ -173,6 +175,23 @@
 		<button type="button" class="close" data-dismiss="alert" aria-label="Close">
 			<span aria-hidden>&times;</span>
 		</button>
+	</div>
+</script>
+
+<!-- The introductory message for a shared time -->
+<script type="text/html" id="shared-intro-tpl">
+	<p class="lead">{{name}} shared a time with you, you can see it below in your timezone and in theirs.</p>
+	
+	<p>We've done our best to infer your timezone, if we got it wrong, or if you'd just like to see the time in another timezone, you can change your timezone in the <em>About You</em> box.</p>
+</script>
+
+<!-- A Clock -->
+<script type="text/html" id="clock-tpl">
+	<div class="clock display-1 text-center">
+		<div class="badge badge-{{{bootstrapColor}}}">
+			{{time}}<br>
+			<small>{{date}}</small>
+		</div>
 	</div>
 </script>
 
@@ -223,6 +242,7 @@ var hjn = humanJoiner;
 	// template strings
 	var TEMPLATES = {
 		problemAlert: '', // the templte for warning and error alerts
+		sharedIntro: '', // the template for the introduction above the shared time
 		clock: '' // the template for rendering a clock
 	};
 	
@@ -245,6 +265,8 @@ var hjn = humanJoiner;
 	var $YOU_COOKIE_DELETE_FG = null; // the form group for the cookie deletion UI
 	var $YOU_COOKIE_DELETE_BTN = null; // the button for deleting a cookie
 	var $YOU_COOKIE_DESC = null; // the description of the currently set cookie
+	var $SHARED_TAB_LI = null; // the nav item containing the button for the shared tab pane
+	var $SHARED_INTRO_DIV = null; // the paragraph with the shared time introdiction
 	var $SHARED_YOURTIME_TIME = null; // the placeholder for the shared time in the recipient's timezone
 	var $SHARED_YOURTIME_TIMEZONE = null; // the placeholder for the recipient's timezone
 	var $SHARED_THEIRTIME_NAME = null; // the placeholder for the label for the sender's time
@@ -442,7 +464,6 @@ var hjn = humanJoiner;
 		// show or hide as appropriate
 		if(cookieStrings.length > 0){
 			// there are cookies, so show them
-			console.log('showing!');
 			
 			// write the cookie description
 			$YOU_COOKIE_DESC.html(`Your cookie currently stores ${hjn.and.j(cookieStrings)}`);
@@ -500,6 +521,8 @@ var hjn = humanJoiner;
 		$YOU_COOKIE_DELETE_FG = $('#you-cookie-delete-fg');
 		$YOU_COOKIE_DELETE_BTN = $('#you-cookie-delete-btn');
 		$YOU_COOKIE_DESC = $('#you-cookie-desc');
+		$SHARED_TAB_LI = $('#shared-tab-li');
+		$SHARED_INTRO_DIV = $('#shared-intro-div');
 		$SHARED_YOURTIME_TIME = $('#shared-yourTime-time');
 		$SHARED_YOURTIME_TIMEZONE = $('#shared-yourTime-timezone');
 		$SHARED_THEIRTIME_NAME = $('#shared-theirTime-name');
@@ -518,6 +541,7 @@ var hjn = humanJoiner;
 		// -- load templates --
 		//
 		TEMPLATES.clock = $('#clock-tpl').html();
+		TEMPLATES.sharedIntro = $('#shared-intro-tpl').html();
 		TEMPLATES.problemAlert = $('#problem-alert-tpl').html();
 		
 		//
@@ -720,13 +744,20 @@ var hjn = humanJoiner;
 			updateCookieDisplay();
 		});
 		
+		// if there is a shared time, use it as the default for the pickers
+		let localSharedTime = null;
+		if(URL_DATA.timeShared){
+			localSharedTime = moment.tz(URL_DATA.uts, 'X', $YOU_TIMEZONE_TB.val());
+			console.info('initialising date & time pickers from shared time');
+		}
+		
 		// init the date picker
 		const startOfDay = moment().startOf('day');
 		$('#share-date-example').text(startOfDay.format(DATE_FORMAT));
 		$SHARE_DATE_DP.datetimepicker({
 			format: DATE_FORMAT,
 			minDate: startOfDay,
-			defaultDate: moment()
+			defaultDate: localSharedTime ? localSharedTime : moment()
         });
 		$SHARE_DATE_TB.on('input', function(){
 			// validate the date
@@ -739,14 +770,14 @@ var hjn = humanJoiner;
 				$SHARE_DATE_TB.removeClass('is-valid').addClass('is-invalid');
 			}
 			
-			// re-validate sharing
+			// revalidate sharing
 			validateSharing();
 		});
 		
 		// init the time picker
 		$SHARE_TIME_DP.datetimepicker({
 			format: TIME_FORMAT,
-			defaultDate: moment().startOf('hour').add(1, 'hour'),
+			defaultDate: localSharedTime ? localSharedTime : moment().startOf('hour').add(1, 'hour'),
 			stepping: 15
         });
 		$SHARE_TIME_TB.on('input', function(){
@@ -760,7 +791,7 @@ var hjn = humanJoiner;
 				$SHARE_TIME_TB.removeClass('is-valid').addClass('is-invalid');
 			}
 			
-			// re-validate sharing
+			// revalidate sharing
 			validateSharing();
 		});
 		
@@ -794,9 +825,22 @@ var hjn = humanJoiner;
 		//
 		// -- Load The Shared Time (if any) --
 		//
-		
+
 		if(URL_DATA.timeShared){
+			// render the introduction to the shared time
+			$SHARED_INTRO_DIV.empty().html(Mustache.render(
+				TEMPLATES.sharedIntro,
+				{ name: URL_DATA.name ? URL_DATA.name : 'Someone' }
+			));
+			
+			// render the shared time
 			updateSharedTime();
+			
+			// show the tab for the shared time
+			$SHARED_TAB_LI.removeClass('d-none');
+			
+			// activate the tab for the shared time
+			$('a', $SHARED_TAB_LI).click();
 		}
     });
 </script>
