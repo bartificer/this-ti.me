@@ -38,6 +38,9 @@
 <!-- The main page body -->
 <main class="container my-3" style="min-width: 690px;">
 	<div class="row">
+		<div class="col" id="problem-alerts"></div>
+	</div>
+	<div class="row">
 		<div class="col">
 			 <div class="card">
 				<div class="card-header h3">
@@ -76,6 +79,15 @@
 							</div>
 						</div>
 						<small class="form-text text-muted">This link encodes your chosen timezone and name, bookmark or save it to save yourself a little time and effort.</small>
+					</div>
+					<div class="form-group">
+						<label>Save a Cookie</label>
+						<button class="btn btn-secondary form-control" type="button" id="you-cookie-save-btn"><i class="fas fa-cookie"></i> Save to Cookie</button>
+						<small class="form-text text-muted">You can save your preferred timezone and name as a cookie in your browser. This cookie will be remembered for one year. Each time you visit the page the cookie will be refreshed for a further year.</small>
+					</div>
+					<div class="form-group d-none" id="you-cookie-delete-fg">
+						<button class="btn btn-danger form-control" type="button" id="you-cookie-delete-btn"><i class="fas fa-cookie"></i> Delete your Cookie</button>
+						<small class="form-text text-muted" id="you-cookie-desc"></small>
 					</div>
 				</form>
 			 </div>
@@ -144,12 +156,23 @@
 == Define Mustache Templates ==
 -->
 
+<!-- A Clock -->
 <script type="text/html" id="clock-tpl">
 	<div class="clock display-1 text-center">
 		<div class="badge badge-{{{bootstrapColor}}}">
 			{{time}}<br>
 			<small>{{date}}</small>
 		</div>
+	</div>
+</script>
+
+<!-- An error message -->
+<script type="text/html" id="problem-alert-tpl">
+	<div class="alert alert-{{{bootstrapColor}}} alert-dismissible fade show" role="alert"">
+		<p class="m-0"><strong><i class="fas fa-exclamation-triangle" aria-hidden></i> {{title}}:</strong> {{{message}}}</p>
+		<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+			<span aria-hidden>&times;</span>
+		</button>
 	</div>
 </script>
 
@@ -179,6 +202,18 @@
 <!-- Include Mustache.js from CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/4.0.1/mustache.min.js" integrity="sha512-6AXIWogbKpsHvoZJrJtHpIYES4wP8czSj0zk7ZfwOYS8GWYFNSykwdfapt7yQc4ikZytemBu+QyVObzBHJMwYg==" crossorigin="anonymous"></script>
 
+<!-- Include Cookie JS from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/js-cookie@2.2.1/src/js.cookie.min.js"></script>
+
+<!-- Include is.js from CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/is_js/0.9.0/is.min.js" integrity="sha512-DvhVUdQWYI9UoF5HGHhl00nbUFcr+j6dGlg/FSrolqR3EridE8CF82nCNAZsE4iAPkw/ws0O7IrZ1jOUuJQXxg==" crossorigin="anonymous"></script>
+
+<!-- Include Human Joiner from CDN -->
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@bartificer/human-join/dist/index.js"></script>
+<script type="text/javascript">
+var hjn = humanJoiner;
+</script>
+
 <!-- This Page's Local JavaScript Code -->
 <script type="text/javascript">
 	//
@@ -187,6 +222,7 @@
 	
 	// template strings
 	var TEMPLATES = {
+		problemAlert: '', // the templte for warning and error alerts
 		clock: '' // the template for rendering a clock
 	};
 	
@@ -195,12 +231,20 @@
 	var TIME_FORMAT = 'HH:mm';
 	var COMBINED_FORMAT = `${DATE_FORMAT} ${TIME_FORMAT}`;
 	
+	// jQuery preferences
+	var JQ_ANI_TIME = 250; // the number of milliseconds to use for jQuery animations
+	
 	// jQuery objects representing important UI elements
+	var $PROBLEM_ALERTS = null; // the container for any problem alerts
 	var $YOU_FM = null; // the 'you' form
 	var $YOU_TIMEZONE_TB = null; // the text box for your timezone
 	var $YOU_NAME_TB = null; // the text box for your name
 	var $YOU_LINK_TB = null; // the text box for your personal link
 	var $YOU_LINK_BTN = null; // the button for generating your personal link
+	var $YOU_COOKIE_SAVE_BTN = null; // the button for saving a cookie
+	var $YOU_COOKIE_DELETE_FG = null; // the form group for the cookie deletion UI
+	var $YOU_COOKIE_DELETE_BTN = null; // the button for deleting a cookie
+	var $YOU_COOKIE_DESC = null; // the description of the currently set cookie
 	var $SHARED_YOURTIME_TIME = null; // the placeholder for the shared time in the recipient's timezone
 	var $SHARED_YOURTIME_TIMEZONE = null; // the placeholder for the recipient's timezone
 	var $SHARED_THEIRTIME_NAME = null; // the placeholder for the label for the sender's time
@@ -218,9 +262,46 @@
 	// the infomration passed in the URL (if any)
 	var URL_DATA = { timeShared: false };
 	
+	// the information saved in cookies (if any)
+	var COOKIE_DATA = {};
+	
 	//
 	// === Utility Functions ===
 	//
+	
+	/**
+	 * Test if a given value is a valid unix timestamp.
+	 *
+	 * @param val
+	 * @return {boolean}
+	 */
+	function isUTS(val){
+		// if it's not all digits it's defnitely not a UTS
+		if(!String(val).match(/^\d+$/)) return false;
+		
+		// make sure the value is within range
+		if(parseInt(val) > 2147483647) return false;
+		
+		// if we got here all is well
+		return true;
+	}
+	
+	/**
+	 * Test if a given value is a valid IANA timezone.
+	 *
+	 * @param {string} val
+	 * @return {boolean}
+	 */
+	function isIANATimezone(val){
+		// make sure it's a string
+		if(is.not.string(val)) return false;
+		
+		// make sure the zone exists
+		if(is.null(moment.tz.zone(val))) return false;
+		
+		// if we got here all is well
+		return true;
+	}
 	
 	/**
 	 * Convert an IANA timezone name to a human-friendly timezone name.
@@ -261,6 +342,40 @@
 	//
 	// === UI Functions ===
 	//
+	
+	/**
+	 * Log a warning or error message.
+	 *
+	 * Shows a dismissable alert and logs to the console.
+	 *
+	 * @param {string} message
+	 * @param {boolean} [isError=false]
+	 * @param {Error|string} [error] - Detailed error information that will be logged to the console but not alerted to the user.
+	 */
+	function logProblem(message, isError, error){
+		// build the title
+		const title = isError ? 'Error' : 'Warning';
+		
+		// log the error
+		if(isError){
+			console.error(`${title}: ${message}`, error);
+		}else{
+			console.warn(`${title}: ${message}`, error);
+		}
+		
+		// build and init an alert
+		const $alert = $(Mustache.render(
+			TEMPLATES.problemAlert,
+			{
+				bootstrapColor: isError ? 'danger' : 'warning',
+				title,
+				message
+			}
+		)).alert();
+		
+		// inject the alert into the document
+		$PROBLEM_ALERTS.append($alert);
+	}
 	
 	/**
 	 * Read my timezone in human-friendly form.
@@ -310,9 +425,46 @@
 	}
 	
 	/**
+	 * Update the display of the cookie information.
+	 */
+	function updateCookieDisplay(){
+		// get the currently set cookies
+		const cookieStrings = [];
+		const mytz = Cookies.get('mytz');
+		if(mytz){
+			cookieStrings.push(`your timezone as <kbd>${ianaTZToHuman(mytz)}</kbd>`);
+		}
+		const myname = Cookies.get('myname');
+		if(myname){
+			cookieStrings.push(`your name as <kbd>${myname}</kbd>`);
+		}
+		
+		// show or hide as appropriate
+		if(cookieStrings.length > 0){
+			// there are cookies, so show them
+			console.log('showing!');
+			
+			// write the cookie description
+			$YOU_COOKIE_DESC.html(`Your cookie currently stores ${hjn.and.j(cookieStrings)}`);
+			
+			// show the form group
+			$YOU_COOKIE_DELETE_FG.removeClass('d-none').show(JQ_ANI_TIME);
+		}else{
+			// there are not cookies, so hide the section
+			$YOU_COOKIE_DELETE_FG.hide(JQ_ANI_TIME);
+		}
+	}
+	
+	/**
 	 * Update the display of the shared time.
 	 */
 	function updateSharedTime(){
+		// make sure there is a shared time before doing anything!
+		if(!URL_DATA.timeShared){
+			console.debug('atempt to update the shared time when no time was shared - ignoring');
+			return;
+		}
+		
 		// build a moment object representing the shared time
 		const sharedTime = moment.tz(URL_DATA.uts, 'X', $YOU_TIMEZONE_TB.val());
 		
@@ -336,32 +488,18 @@
 	//
 	$(function(){
 		//
-		// -- extract data from URL
-		//
-		const rawURLInfo = (new URI()).query(true);
-		if(rawURLInfo.uts && rawURLInfo.tz){
-			URL_DATA.timeShared = true;
-			URL_DATA.uts = rawURLInfo.uts;
-			URL_DATA.tz = rawURLInfo.tz;
-			if(rawURLInfo.name){
-				URL_DATA.name = sanitiseName(rawURLInfo.name);
-			}
-		}
-		if(rawURLInfo.mytz){
-			URL_DATA.mytz = rawURLInfo.mytz;
-		}
-		if(rawURLInfo.myname){
-			URL_DATA.myname = sanitiseName(rawURLInfo.myname);
-		}
-		
-		//
 		// -- init the global jQuery variables --
 		//
+		$PROBLEM_ALERTS = $('#problem-alerts');
 		$YOU_FM = $('#you-fm');
 		$YOU_TIMEZONE_TB = $('#you-timezone-tb');
 		$YOU_NAME_TB = $('#you-name-tb');
 		$YOU_LINK_TB = $('#you-link-tb');
 		$YOU_LINK_BTN = $('#you-link-btn');
+		$YOU_COOKIE_SAVE_BTN = $('#you-cookie-save-btn');
+		$YOU_COOKIE_DELETE_FG = $('#you-cookie-delete-fg');
+		$YOU_COOKIE_DELETE_BTN = $('#you-cookie-delete-btn');
+		$YOU_COOKIE_DESC = $('#you-cookie-desc');
 		$SHARED_YOURTIME_TIME = $('#shared-yourTime-time');
 		$SHARED_YOURTIME_TIMEZONE = $('#shared-yourTime-timezone');
 		$SHARED_THEIRTIME_NAME = $('#shared-theirTime-name');
@@ -380,6 +518,59 @@
 		// -- load templates --
 		//
 		TEMPLATES.clock = $('#clock-tpl').html();
+		TEMPLATES.problemAlert = $('#problem-alert-tpl').html();
+		
+		//
+		// -- extract data from URL
+		//
+		const rawURLInfo = (new URI()).query(true);
+		if(rawURLInfo.uts && rawURLInfo.tz){
+			let allOK = true;
+			if(!isUTS(rawURLInfo.uts)){
+				console.warn('Invalid UTS in URL', rawURLInfo.uts);
+				allOK = false;
+			}
+			if(!isIANATimezone(rawURLInfo.tz)){
+				console.warn('Invalid Timezone in URL', rawURLInfo.tz);
+				allOK = false;
+			}
+			if(allOK){
+				URL_DATA.timeShared = true;
+				URL_DATA.uts = rawURLInfo.uts;
+				URL_DATA.tz = rawURLInfo.tz;
+				if(rawURLInfo.name){
+					URL_DATA.name = sanitiseName(rawURLInfo.name);
+				}
+			}else{
+				logProblem('Ignored invalid data in URL', false);
+			}
+		}
+		if(rawURLInfo.mytz){
+			if(isIANATimezone(rawURLInfo.mytz)){
+				URL_DATA.mytz = rawURLInfo.mytz;
+			}else{
+				logProblem('Ignored invalid saved timezone in URL', false, `Invalid TimeZone: ${rawURLInfo.mytz}`);
+			}
+		}
+		if(rawURLInfo.myname){
+			URL_DATA.myname = sanitiseName(rawURLInfo.myname);
+		}
+		
+		//
+		// -- extract data from Cookies (and refresh if found) --
+		//
+		const rawCookieInfo = Cookies.get();
+		if(rawCookieInfo.myname){
+			COOKIE_DATA.myname = sanitiseName(rawCookieInfo.myname);
+		}
+		if(rawCookieInfo.mytz){
+			if(isIANATimezone(rawCookieInfo.mytz)){
+				COOKIE_DATA.mytz = rawCookieInfo.mytz;
+			}else{
+				logProblem('Ignored invalid saved timezone in Cookie', false, `Invalid TimeZone: ${rawCookieInfo.mytz}`);
+			}
+		}
+		updateCookieDisplay();
 		
 		//
 		// -- Init the UI --
@@ -403,7 +594,7 @@
 			tzAutoCompleteCounter++;
 		}
 		
-		// a local function for validating the pre-requisutes for saving a personal URL
+		// a local function for validating the pre-requisutes for saving a personal URL or cookie
 		const validateSaving = function(){
 			// get a list of all invalid inputs
 			const $invalid = $('.is-invalid', $YOU_FM);
@@ -411,9 +602,11 @@
 			if($invalid.length === 0){
 				// no invalid fields
 				$YOU_LINK_BTN.prop('disabled', false);
+				$YOU_COOKIE_SAVE_BTN.prop('disabled', false);
 			}else{
 				// at least one invalid field
 				$YOU_LINK_BTN.prop('disabled', true);
+				$YOU_COOKIE_SAVE_BTN.prop('disabled', true);
 			}
 		};
 		
@@ -432,9 +625,16 @@
 		};
 		
 		// init the timezone input
-		let defaultTz = Intl.DateTimeFormat().resolvedOptions().timeZone; // default to browser locale
+		let defaultTz = 'UTC';
 		if(URL_DATA.mytz){
-			defaultTz = URL_DATA.mytz; // use URL data if available
+			defaultTz = URL_DATA.mytz;
+			console.info('using timezone from URL');
+		}else if(COOKIE_DATA.mytz){
+			defaultTz = COOKIE_DATA.mytz;
+			console.info('using timezone from cookie');
+		}else{
+			defaultTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+			console.info('using timezone from browser locale');
 		}
 		$YOU_TIMEZONE_TB.val(defaultTz).autocomplete({
 			source: tzAutoCompeleSource, // the autocompelte values
@@ -445,10 +645,12 @@
 			}
 		}).on('input', function(){
 			// validate the timezone
-			const tzObj = moment.tz.zone(myIANATimezone());
-			if(tzObj){
-				// not null, so time zone is valid
+			if(isIANATimezone(myIANATimezone())){
+				// mark the field as valid
 				$YOU_TIMEZONE_TB.removeClass('is-invalid').addClass('is-valid');
+				
+				// update the shared time, if any
+				if(URL_DATA.timeShared){ updateSharedTime(); }
 			}else{
 				// timezone is invalid
 				$YOU_TIMEZONE_TB.removeClass('is-valid').addClass('is-invalid');
@@ -462,6 +664,10 @@
 		// init the name input
 		if(URL_DATA.myname){
 			$YOU_NAME_TB.val(URL_DATA.myname);
+			console.info('using name from URL');
+		}else if(COOKIE_DATA.myname){
+			$YOU_NAME_TB.val(COOKIE_DATA.myname);
+			console.info('using name from Cookie');
 		}
 		
 		// add an event handler to blank the personal link when any of the personal data changes
@@ -469,7 +675,7 @@
 			$YOU_LINK_TB.val('');
 		});
 		
-		// init the personal link button
+		// add a click handler to the personal link button
 		$YOU_LINK_BTN.click(function(){
 			// build the URL
 			const saveInfo = {
@@ -484,6 +690,34 @@
 			
 			// write the URL to the textbox and select it
 			$YOU_LINK_TB.val(saveURL.toString()).select();
+		});
+		
+		// add a click handler to the cookie save button
+		$YOU_COOKIE_SAVE_BTN.click(function(){
+			// write the cookies
+			const tz = myIANATimezone();
+			Cookies.set('mytz', tz);
+			COOKIE_DATA.mytz = tz;
+			const name = myName();
+			if(name){
+				Cookies.set('myname', name);
+				COOKIE_DATA.myname = name;
+			}
+			
+			// update the cookie display
+			updateCookieDisplay();
+		});
+		
+		// add a click handler to the cookie delete button
+		$YOU_COOKIE_DELETE_BTN.click(function(){
+			// delete the cookies
+			Cookies.remove('mytz');
+			delete COOKIE_DATA.mytz;
+			Cookies.remove('myname');
+			delete COOKIE_DATA.myname;
+			
+			// update the cookie display
+			updateCookieDisplay();
 		});
 		
 		// init the date picker
