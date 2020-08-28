@@ -200,8 +200,8 @@
 	var $SHARE_TB = null; // the text box for holding the share link
 	var $ALL_FM = null; // the 'you' and share forms
 	
-	// the infomration shared in the URL (if any)
-	var SHARED_INFO = null;
+	// the infomration passed in the URL (if any)
+	var URL_DATA = { timeShared: false };
 	
 	//
 	// === Utility Functions ===
@@ -231,6 +231,18 @@
 		return String(humanTZName).replaceAll(' ', '_');
 	}
 	
+	/**
+	 * Sanitise a name.
+	 *
+	 * This function collapses all white space into single spaces, and trims the string.
+	 *
+	 * @param {string} name
+	 * @return {string}
+	 */
+	function sanitiseName(name){
+		return String(name).replace(/\s+/g, ' ').trim();
+	}
+	
 	//
 	// === UI Functions ===
 	//
@@ -251,6 +263,17 @@
 	 */
 	function myIANATimezone(){
 		return humanTZToIANA(myTimezone());
+	}
+	
+	/**
+	 * Read my name from the form.
+	 *
+	 * This function sanitises the name.
+	 *
+	 * @return {string}
+	 */
+	function myName(){
+		return sanitiseName($YOU_NAME_TB.val());
 	}
 	
 	/**
@@ -276,27 +299,46 @@
 	 */
 	function updateSharedTime(){
 		// build a moment object representing the shared time
-		const sharedTime = moment.tz(SHARED_INFO.uts, 'X', $YOU_TIMEZONE_TB.val());
+		const sharedTime = moment.tz(URL_DATA.uts, 'X', $YOU_TIMEZONE_TB.val());
 		
 		// render the time in your timezone
 		$SHARED_YOURTIME_TIME.empty().append(renderClock(sharedTime, true));
 		$SHARED_YOURTIME_TIMEZONE.text(myTimezone());
 		
 		// render the time in the sender's timezone
-		const theirTime = moment(sharedTime).tz(SHARED_INFO.tz);
+		const theirTime = moment(sharedTime).tz(URL_DATA.tz);
 		let theirName = 'Their';
-		if(SHARED_INFO.name){
-			theirName = `${SHARED_INFO.name}'${ SHARED_INFO.name.match(/s$/i) ? '' : 's' }`;
+		if(URL_DATA.name){
+			theirName = `${URL_DATA.name}'${ URL_DATA.name.match(/s$/i) ? '' : 's' }`;
 		}
 		$SHARED_THEIRTIME_NAME.text(theirName);
 		$SHARED_THEIRTIME_TIME.empty().append(renderClock(theirTime));
-		$SHARED_THEIRTIME_TIMEZONE.text(ianaTZToHuman(SHARED_INFO.tz));
+		$SHARED_THEIRTIME_TIMEZONE.text(ianaTZToHuman(URL_DATA.tz));
 	}
 	
 	//
 	// === The Document Ready Handler ===
 	//
 	$(function(){
+		//
+		// -- extract data from URL
+		//
+		const rawURLInfo = (new URI()).query(true);
+		if(rawURLInfo.uts && rawURLInfo.tz){
+			URL_DATA.timeShared = true;
+			URL_DATA.uts = rawURLInfo.uts;
+			URL_DATA.tz = rawURLInfo.tz;
+			if(rawURLInfo.name){
+				URL_DATA.name = sanitiseName(rawURLInfo.name);
+			}
+		}
+		if(rawURLInfo.mytz){
+			URL_DATA.mytz = rawURLInfo.mytz;
+		}
+		if(rawURLInfo.myname){
+			URL_DATA.myname = sanitiseName(rawURLInfo.myname);
+		}
+		
 		//
 		// -- init the global jQuery variables --
 		//
@@ -359,7 +401,11 @@
 		};
 		
 		// init the timezone input
-		$YOU_TIMEZONE_TB.val(Intl.DateTimeFormat().resolvedOptions().timeZone).autocomplete({
+		let defaultTz = Intl.DateTimeFormat().resolvedOptions().timeZone; // default to browser locale
+		if(URL_DATA.mytz){
+			defaultTz = URL_DATA.mytz; // use URL data if available
+		}
+		$YOU_TIMEZONE_TB.val(defaultTz).autocomplete({
 			source: tzAutoCompeleSource, // the autocompelte values
 			maximumItems: 10, // the maximum autocomplete suggestions
 			treshold: 1, // the minimum number of characters to search
@@ -380,6 +426,11 @@
 			// re-validate sharing
 			validateSharing();
 		});
+		
+		// init the name input
+		if(URL_DATA.myname){
+			$YOU_NAME_TB.val(URL_DATA.myname);
+		}
 		
 		// init the date picker
 		const startOfDay = moment().startOf('day');
@@ -436,8 +487,9 @@
 				uts: shareDate.unix(),
 				tz: shareTZ
 			};
-			if($YOU_NAME_TB.val()){
-				shareInfo.name = $YOU_NAME_TB.val();
+			const name = myName();
+			if(name){
+				shareInfo.name = name;
 			}
 			const shareURL = URI().query(shareInfo);
 			
@@ -449,11 +501,6 @@
 		//
 		// -- Load The Shared Time (if any) --
 		//
-		
-		const sharedInfo = (new URI()).query(true);
-		if(sharedInfo.uts){
-			SHARED_INFO = sharedInfo;
-		}
 		
 		updateSharedTime();
     });
