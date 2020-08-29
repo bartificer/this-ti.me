@@ -110,7 +110,7 @@
 				</div>
 			</div>
 		</div>
-		<div class="col-12 col-md-4 order-md-first">
+		<div class="col-12 col-md-4">
 			 <div class="card bg-light">
 				<div class="card-header h4">
 					About You
@@ -136,27 +136,34 @@
 						</div>
 						<small class="form-text text-muted">Recipients see the shared time in their timezone and yours. If you enter a name, your time will be labeled with your name.</small>
 					</div>
-					<div class="form-group">
-						<label for="you-link-tb">Personal Link</label>
-						<div class="input-group">
-							<div class="input-group-prepend">
-								<div class="input-group-text"><i class="fas fa-link"></i></div>
+					<div class="collapse" id="you-save-div">
+						<div class="form-group">
+							<label for="you-link-tb">Personal Link</label>
+							<div class="input-group">
+								<div class="input-group-prepend">
+									<div class="input-group-text"><i class="fas fa-link"></i></div>
+								</div>
+								<input type="text" class="form-control" id="you-link-tb">
+								<div class="input-group-append">
+									<button class="btn btn-secondary" type="button" id="you-link-btn">Generate</button>
+								</div>
 							</div>
-							<input type="text" class="form-control" id="you-link-tb">
-							<div class="input-group-append">
-								<button class="btn btn-secondary" type="button" id="you-link-btn">Generate</button>
-							</div>
+							<small class="form-text text-muted">This link encodes your chosen timezone and name, bookmark or save it to save yourself a little time and effort.</small>
 						</div>
-						<small class="form-text text-muted">This link encodes your chosen timezone and name, bookmark or save it to save yourself a little time and effort.</small>
+						<div class="form-group">
+							<label>Save a Cookie</label>
+							<button class="btn btn-secondary form-control" type="button" id="you-cookie-save-btn"><i class="fas fa-cookie"></i> Save to Cookie</button>
+							<small class="form-text text-muted">You can save your preferred timezone and name as a cookie in your browser. This cookie will be remembered for one year. Each time you visit the page the cookie will be refreshed for a further year.</small>
+						</div>
+						<div class="form-group d-none" id="you-cookie-delete-fg">
+							<button class="btn btn-danger form-control" type="button" id="you-cookie-delete-btn"><i class="fas fa-cookie"></i> Delete your Cookie</button>
+							<small class="form-text text-muted" id="you-cookie-desc"></small>
+						</div>
 					</div>
 					<div class="form-group">
-						<label>Save a Cookie</label>
-						<button class="btn btn-secondary form-control" type="button" id="you-cookie-save-btn"><i class="fas fa-cookie"></i> Save to Cookie</button>
-						<small class="form-text text-muted">You can save your preferred timezone and name as a cookie in your browser. This cookie will be remembered for one year. Each time you visit the page the cookie will be refreshed for a further year.</small>
-					</div>
-					<div class="form-group d-none" id="you-cookie-delete-fg">
-						<button class="btn btn-danger form-control" type="button" id="you-cookie-delete-btn"><i class="fas fa-cookie"></i> Delete your Cookie</button>
-						<small class="form-text text-muted" id="you-cookie-desc"></small>
+						<button class="btn btn-secondary form-control" type="button" id="you-save-btn" data-toggle="collapse" data-target="#you-save-div" aria-expanded="false" aria-controls="you-save-div">
+							Save as Defaults …
+						</button>
 					</div>
 				</form>
 			 </div>
@@ -239,6 +246,9 @@ var hjn = humanJoiner;
 	// === Global Variables ===
 	//
 	
+	// cookie settings
+	var COOKIE_TTL = 365; // one year
+	
 	// template strings
 	var TEMPLATES = {
 		problemAlert: '', // the templte for warning and error alerts
@@ -259,6 +269,8 @@ var hjn = humanJoiner;
 	var $YOU_FM = null; // the 'you' form
 	var $YOU_TIMEZONE_TB = null; // the text box for your timezone
 	var $YOU_NAME_TB = null; // the text box for your name
+	var $YOU_SAVE_BTN = null; // the button to show/hide the save controls
+	var $YOU_SAVE_DIV = null; // the container for the save controls
 	var $YOU_LINK_TB = null; // the text box for your personal link
 	var $YOU_LINK_BTN = null; // the button for generating your personal link
 	var $YOU_COOKIE_SAVE_BTN = null; // the button for saving a cookie
@@ -487,7 +499,7 @@ var hjn = humanJoiner;
 		}
 		
 		// build a moment object representing the shared time
-		const sharedTime = moment.tz(URL_DATA.uts, 'X', $YOU_TIMEZONE_TB.val());
+		const sharedTime = moment.tz(URL_DATA.uts, 'X', myIANATimezone());
 		
 		// render the time in your timezone
 		$SHARED_YOURTIME_TIME.empty().append(renderClock(sharedTime, true));
@@ -504,6 +516,117 @@ var hjn = humanJoiner;
 		$SHARED_THEIRTIME_TIMEZONE.text(ianaTZToHuman(URL_DATA.tz));
 	}
 	
+	/**
+	 * Generate a personal link.
+	 *
+	 * @return {string} The generated URL.
+	 */
+	function generatePersonalLink(){
+		// validate the data
+		const mytz = myIANATimezone();
+		if(!isIANATimezone(mytz)){
+			logProblem('Failed to generate personal link - invalid timezone', false, `invalid timezone: ${mytz}`);
+			return '';
+		}
+		
+		// build the URL
+		const saveInfo = { mytz };
+		const name = myName();
+		if(name){
+			saveInfo.myname = name;
+		}
+		const saveURL = URI().query(saveInfo);
+		const personalURL = saveURL.toString();
+			
+		// write the URL to the textbox and select it
+		$YOU_LINK_TB.val(personalURL).select();
+		
+		// return the URL
+		return personalURL;
+	}
+	
+	/**
+	 * Save my settings to cookies.
+	 */
+	function saveCookies(){
+		// validate the data
+		const tz = myIANATimezone();
+		if(!isIANATimezone(tz)){
+			logProblem('Failed to save cookie, invalid timezone.', false, `invalid timezone: ${tz}`);
+			return;
+		}
+		
+		// write the cookies
+		Cookies.set('mytz', tz, { expires: COOKIE_TTL });
+		COOKIE_DATA.mytz = tz;
+		const name = myName();
+		if(name){
+			Cookies.set('myname', name, { expires: COOKIE_TTL });
+			COOKIE_DATA.myname = name;
+		}else{
+			Cookies.remove('myname');
+			delete COOKIE_DATA.myname;
+		}
+		console.info('saved personal info to cookie:', COOKIE_DATA);
+			
+		// update the cookie display
+		updateCookieDisplay();
+	}
+	
+	/**
+	 * Delete my Cookies.
+	 */
+	function deleteCookies(){
+		// delete the cookies
+		Cookies.remove('mytz');
+		delete COOKIE_DATA.mytz;
+		Cookies.remove('myname');
+		delete COOKIE_DATA.myname;
+		console.info('deleted cookies');
+			
+		// update the cookie display
+		updateCookieDisplay();
+	}
+	
+	/**
+	 * Generate a share link.
+	 *
+	 * @return {string} The generated URL.
+	 */
+	function generateShareLink(){
+		// validate the data
+		const shareTZ = myIANATimezone();
+		if(!isIANATimezone(shareTZ)){
+			logProblem('Failed to generate share link - invalid timezone', false, `invalid timezone: ${shareTZ}`);
+			return '';
+		}
+		
+		// build an object representing the date time in the appropriate timezone
+		const shareDate = moment.tz(`${$SHARE_DATE_TB.val()} ${$SHARE_TIME_TB.val()}`, COMBINED_FORMAT, shareTZ);
+		if(!shareDate.isValid()){
+			logProblem('Failed to generate shar link', false, 'moment constructor returned invalid date');
+			return '';
+		}
+			
+		// build the URL
+		const shareInfo = {
+			uts: shareDate.unix(),
+			tz: shareTZ
+		};
+		const name = myName();
+		if(name){
+			shareInfo.name = name;
+		}
+		const shareURL = URI().query(shareInfo);
+			
+			
+		// write the URL to the textbox and select it
+		const shareURLString = shareURL.toString();
+		$SHARE_TB.val(shareURLString).select();
+		
+		// return the URL
+		return shareURLString;
+	}
 	//
 	// === The Document Ready Handler ===
 	//
@@ -515,6 +638,8 @@ var hjn = humanJoiner;
 		$YOU_FM = $('#you-fm');
 		$YOU_TIMEZONE_TB = $('#you-timezone-tb');
 		$YOU_NAME_TB = $('#you-name-tb');
+		$YOU_SAVE_BTN = $('#you-save-btn');
+		$YOU_SAVE_DIV = $('#you-save-div');
 		$YOU_LINK_TB = $('#you-link-tb');
 		$YOU_LINK_BTN = $('#you-link-btn');
 		$YOU_COOKIE_SAVE_BTN = $('#you-cookie-save-btn');
@@ -699,50 +824,22 @@ var hjn = humanJoiner;
 			$YOU_LINK_TB.val('');
 		});
 		
-		// add a click handler to the personal link button
-		$YOU_LINK_BTN.click(function(){
-			// build the URL
-			const saveInfo = {
-				mytz: myIANATimezone()
-			};
-			const name = myName();
-			if(name){
-				saveInfo.myname = name;
-			}
-			const saveURL = URI().query(saveInfo);
-			
-			
-			// write the URL to the textbox and select it
-			$YOU_LINK_TB.val(saveURL.toString()).select();
+		// add handlers to update the label on the show/hide button for the save controls
+		$YOU_SAVE_DIV.on('show.bs.collapse', function(){
+			$YOU_SAVE_BTN.text('Hide Save Controls');
 		});
+		$YOU_SAVE_DIV.on('hide.bs.collapse', function(){
+			$YOU_SAVE_BTN.text('Save as Defaults …');
+		});
+		
+		// add a click handler to the personal link button
+		$YOU_LINK_BTN.click(generatePersonalLink);
 		
 		// add a click handler to the cookie save button
-		$YOU_COOKIE_SAVE_BTN.click(function(){
-			// write the cookies
-			const tz = myIANATimezone();
-			Cookies.set('mytz', tz);
-			COOKIE_DATA.mytz = tz;
-			const name = myName();
-			if(name){
-				Cookies.set('myname', name);
-				COOKIE_DATA.myname = name;
-			}
-			
-			// update the cookie display
-			updateCookieDisplay();
-		});
+		$YOU_COOKIE_SAVE_BTN.click(saveCookies);
 		
 		// add a click handler to the cookie delete button
-		$YOU_COOKIE_DELETE_BTN.click(function(){
-			// delete the cookies
-			Cookies.remove('mytz');
-			delete COOKIE_DATA.mytz;
-			Cookies.remove('myname');
-			delete COOKIE_DATA.myname;
-			
-			// update the cookie display
-			updateCookieDisplay();
-		});
+		$YOU_COOKIE_DELETE_BTN.click(deleteCookies);
 		
 		// if there is a shared time, use it as the default for the pickers
 		let localSharedTime = null;
@@ -801,26 +898,7 @@ var hjn = humanJoiner;
 		});
 		
 		// add a click handler to the generate button
-		$SHARE_BTN.click(function(){
-			// build objects representing the timezone and date time
-			const shareTZ = myIANATimezone();
-			const shareDate = moment.tz(`${$SHARE_DATE_TB.val()} ${$SHARE_TIME_TB.val()}`, COMBINED_FORMAT, shareTZ);
-			
-			// build the URL
-			const shareInfo = {
-				uts: shareDate.unix(),
-				tz: shareTZ
-			};
-			const name = myName();
-			if(name){
-				shareInfo.name = name;
-			}
-			const shareURL = URI().query(shareInfo);
-			
-			
-			// write the URL to the textbox and select it
-			$SHARE_TB.val(shareURL.toString()).select();
-		});
+		$SHARE_BTN.click(generateShareLink);
 		
 		//
 		// -- Load The Shared Time (if any) --
