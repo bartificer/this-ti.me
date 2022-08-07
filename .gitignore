@@ -1,2 +1,4 @@
 
 *.komodoproject
+
+node_modules/
