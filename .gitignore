@@ -2,3 +2,5 @@
 *.komodoproject
 
 node_modules/
+
+docs/

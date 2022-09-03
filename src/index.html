@@ -2,16 +2,16 @@
 <html>
 <head>
 	<meta charset="utf-8" />
-				
+
 	<!-- Include Bootstrap 4 CSS -->
 	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
 	
 	<!-- Include Font Awesome 5 -->
 	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
-	
-	<!-- Add local styles -->
-	<link rel="stylesheet" href="./index.css" type="text/css">
+
+	<!-- import the head bundle (applies CSS) -->
+	<script src="./bundle-head.js"></script>
 	
 	<title>This-Ti.me</title>
 </head>
@@ -236,8 +236,8 @@
 var hjn = humanJoiner;
 </script>
 
-<!-- This Page's Local JavaScript Code -->
-<script type="text/javascript" src="./index.js"></script>
+<!-- import the body bundle (JavaScript code + dependencies) -->
+<script type="text/javascript" src="./bundle-body.js"></script>
 
 </body>
 </html>
