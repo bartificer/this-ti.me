@@ -12,8 +12,8 @@ import CopyPlugin from 'copy-webpack-plugin';
 // export the Webpack config
 export default {
     entry: {
-        head: './src/head.js', // will be imported inside the header — CSS only
-        body: './src/body.js', // will be imported at the very bottom of the body — JavaScript only
+        head: './src/index-head.js', // will be imported inside the header — CSS only
+        body: './src/index-body.js', // will be imported at the very bottom of the body — JavaScript only
     },
     output: {
         path: path.resolve(__dirname, 'docs'),
@@ -27,6 +27,10 @@ export default {
                     'style-loader',
                     'css-loader'
                 ]
+            },
+            {
+                test: /\.(woff|woff2|eot|ttf|otf)$/i,
+                type: 'asset/inline'
             }
         ]
     },

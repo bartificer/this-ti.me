@@ -3,10 +3,10 @@
 //
 
 // import bootstrap CSS
-//import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 // import font awesome CSS
-//import '@fortawesome/fontawesome-free/css/all.min.css';
+import '@fortawesome/fontawesome-free/css/all.min.css';
 
 // custom CSS
 import './index.css';
