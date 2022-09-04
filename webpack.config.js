@@ -6,6 +6,9 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// import webpack's standard functionality
+import webpack from 'webpack';
+
 // import the Webpack copy plugin
 import CopyPlugin from 'copy-webpack-plugin';
 
@@ -29,7 +32,7 @@ export default {
                 ]
             },
             {
-                test: /\.(woff|woff2|eot|ttf|otf)$/i,
+                test: /\.(woff|woff2|eot|ttf|otf|svg)$/i,
                 type: 'asset/inline'
             }
         ]
@@ -39,6 +42,11 @@ export default {
             patterns: [
                 { from: "src/index.html", to: "index.html" }
             ],
+        }),
+        new webpack.ProvidePlugin({
+            $: 'jquery',
+            jQuery: 'jquery',
+            moment: 'moment'
         })
     ]
 };

@@ -2,11 +2,16 @@
 // === TO DO — 3rd-party includes ===
 //
 
-// tempus dominus
-//import 'tempusdominus-bootstrap-4';
+// moment.js with Timezone support
+import moment from 'moment-timezone';
 
-// moment.js with Timezone supprt
-//import moment from 'moment-timezone';
+// jquery
+import $ from 'jquery';
+
+// bootstrap 4 JS and plugins
+import 'bootstrap';
+import 'tempusdominus-bootstrap-4'; // CSS imported in index-head.js
+import 'bootstrap-4-autocomplete';
 
 //URI.js
 import URI from 'urijs';
