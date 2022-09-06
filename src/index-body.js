@@ -36,10 +36,13 @@ import hjn from '@bartificer/human-join';
 var COOKIE_TTL = 365; // one year
 
 // template strings
+import clockTpl from './templates/clock.html.mustache';
+import sharedIntroTpl from './templates/sharedIntro.html.mustache';
+import problemAlertTpl from './templates/problemAlert.html.mustache';
 var TEMPLATES = {
-    problemAlert: '', // the templte for warning and error alerts
-    sharedIntro: '', // the template for the introduction above the shared time
-    clock: '' // the template for rendering a clock
+    problemAlert: problemAlertTpl, // the templte for warning and error alerts
+    sharedIntro: sharedIntroTpl, // the template for the introduction above the shared time
+    clock: clockTpl // the template for rendering a clock
 };
 
 // the date & time formats
@@ -447,13 +450,6 @@ $(function(){
     $SHARE_BTN = $('#share-btn');
     $SHARE_TB = $('#share-tb');
     $ALL_FM = $().add($YOU_FM).add($SHARE_FM);
-    
-    //
-    // -- load templates --
-    //
-    TEMPLATES.clock = $('#clock-tpl').html();
-    TEMPLATES.sharedIntro = $('#shared-intro-tpl').html();
-    TEMPLATES.problemAlert = $('#problem-alert-tpl').html();
     
     //
     // -- extract data from URL

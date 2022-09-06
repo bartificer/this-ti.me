@@ -32,6 +32,10 @@ export default {
                 ]
             },
             {
+                test: /\.mustache$/,
+                type: 'asset/source'
+            },
+            {
                 test: /\.(woff|woff2|eot|ttf|otf|svg)$/i,
                 type: 'asset/inline'
             }

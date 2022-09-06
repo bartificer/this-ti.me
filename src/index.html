@@ -162,37 +162,6 @@
 </main>
 
 <!--
-== Define Mustache Templates ==
--->
-
-<!-- An error message -->
-<script type="text/html" id="problem-alert-tpl">
-	<div class="alert alert-{{{bootstrapColor}}} alert-dismissible fade show" role="alert"">
-		<p class="m-0"><strong><i class="fas fa-exclamation-triangle" aria-hidden></i> {{title}}:</strong> {{{message}}}</p>
-		<button type="button" class="close" data-dismiss="alert" aria-label="Close">
-			<span aria-hidden>&times;</span>
-		</button>
-	</div>
-</script>
-
-<!-- The introductory message for a shared time -->
-<script type="text/html" id="shared-intro-tpl">
-	<p class="lead">{{name}} shared a time with you, you can see it below in your timezone and in theirs.</p>
-	
-	<p>We've done our best to infer your timezone, if we got it wrong, or if you'd just like to see the time in another timezone, you can change your timezone in the <em>About You</em> box.</p>
-</script>
-
-<!-- A Clock -->
-<script type="text/html" id="clock-tpl">
-	<div class="clock display-1 text-center">
-		<div class="badge badge-{{{bootstrapColor}}}">
-			{{time}}<br>
-			<small>{{date}}</small>
-		</div>
-	</div>
-</script>
-
-<!--
 == Import JavaScript ==
 -->
 
