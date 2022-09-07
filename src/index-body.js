@@ -23,7 +23,7 @@ import Mustache from 'mustache';
 import Cookies from 'js-cookie';
 
 // is.js micro type checker
-import is from 'is_js';
+import is from 'is-it-check';
 
 // human joiner
 import hjn from '@bartificer/human-join';
